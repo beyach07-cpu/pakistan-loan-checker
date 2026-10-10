@@ -2,71 +2,164 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-# Page Configuration
+# ---------------------------------------------------------
+# Page Configuration & Global Theme
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="Pakistan Bank Financing & Shariah Portal",
-    page_icon="🏦",
-    layout="wide"
+    page_title="PakFinance | Islamic vs Conventional Portal",
+    page_icon="🏛️",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio(
-    "Go to",
-    [
-        "1. Loan Eligibility & Comparison",
-        "2. Bank Directory & Products",
-        "3. Amortization Schedule",
-        "4. Shariah vs Conventional Guide"
-    ]
-)
+# Custom CSS for Modern, Executive UI/UX
+st.markdown("""
+<style>
+    /* Global Typography & Background adjustments */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* Card Container */
+    .finance-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+    }
+    
+    /* Metric Callout Badges */
+    .metric-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .badge-success { background-color: #d1fae5; color: #065f46; }
+    .badge-warning { background-color: #fef3c7; color: #92400e; }
+    .badge-danger { background-color: #fee2e2; color: #991b1b; }
 
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "**Pakistan Banking Compliance:**\n"
-    "- Rates are indicative flat estimates based on prevailing KIBOR spreads.\n"
-    "- Debt Burden Ratio follows State Bank of Pakistan (SBP) consumer regulations."
-)
+    /* Custom Header Subtitle */
+    .sub-heading {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin-top: -12px;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# ==============================================================================
-# PAGE 1: LOAN ELIGIBILITY & COMPARISON
-# ==============================================================================
-if page == "1. Loan Eligibility & Comparison":
-    st.title("Loan Eligibility & Financing Comparison")
-    st.write("Assess your borrowing profile against SBP benchmarks and compare Islamic vs Conventional repayment schedules.")
+# ---------------------------------------------------------
+# Sidebar Navigation & Quick Presets
+# ---------------------------------------------------------
+with st.sidebar:
+    st.markdown("### 🏛️ **PakFinance Portal**")
+    st.caption("State Bank Prudential & Shariah Benchmarking")
     st.markdown("---")
+    
+    page = st.radio(
+        "Navigation Menu",
+        [
+            "📊 Eligibility & Comparison",
+            "🏢 Bank Directory & Products",
+            "📅 Amortization Matrix",
+            "📖 Shariah vs Conventional Guide"
+        ],
+        index=0
+    )
+    
+    st.markdown("---")
+    st.markdown("#### ⚡ Quick Presets")
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        if st.button("🚗 Auto (Car)", use_container_width=True):
+            st.session_state["preset_price"] = 3500000
+            st.session_state["preset_down"] = 30
+            st.session_state["preset_tenure"] = 3
+    with col_p2:
+        if st.button("🏠 Home Fin.", use_container_width=True):
+            st.session_state["preset_price"] = 12000000
+            st.session_state["preset_down"] = 25
+            st.session_state["preset_tenure"] = 7
 
-    col_in, col_out = st.columns([1, 1], gap="large")
+    st.markdown("---")
+    st.caption("All figures follow prevailing SBP Consumer Financing DBR thresholds (40%–50% net income cap).")
 
-    with col_in:
-        st.subheader("Applicant Profile")
-        monthly_income = st.slider("Monthly Gross Income (PKR)", 25000, 1000000, 120000, step=5000)
-        age = st.slider("Applicant Age (Years)", 18, 65, 30, step=1)
-        job_type = st.selectbox(
-            "Employment Category",
-            ["Government Job", "Private Job - Permanent", "Business Owner", "Freelancer / Contractual"]
-        )
-        credit_history = st.selectbox(
-            "Credit History (e-CIB Rating)",
-            ["Excellent", "Good", "Average", "Poor"],
-            index=1
-        )
+# Default values handler
+if "preset_price" not in st.session_state:
+    st.session_state["preset_price"] = 2500000
+if "preset_down" not in st.session_state:
+    st.session_state["preset_down"] = 20
+if "preset_tenure" not in st.session_state:
+    st.session_state["preset_tenure"] = 3
 
-        st.subheader("Financing Details")
-        loan_type = st.selectbox(
-            "Financing Category",
-            ["Auto Financing (Car Ijarah)", "Home Financing (Diminishing Musharakah)", "Personal Loan", "SME / Business Loan"]
-        )
-        asset_price = st.number_input("Total Asset Value / Facility Amount (PKR)", min_value=100000, value=2000000, step=100000)
-        down_payment_pct = st.slider("Down Payment (%)", 0, 80, 20, step=5)
-        
-        down_payment_amt = asset_price * (down_payment_pct / 100)
-        loan_amount = asset_price - down_payment_amt
-        tenure_years = st.slider("Tenure (Years)", 1, 7, 3, step=1)
+# ==============================================================================
+# PAGE 1: ELIGIBILITY & COMPARISON DASHBOARD
+# ==============================================================================
+if page == "📊 Eligibility & Comparison":
+    st.title("Loan Eligibility & Financing Assessment")
+    st.markdown('<p class="sub-heading">Evaluate Debt-Burden Ratio (DBR) and compare Islamic Ijarah/Musharakah against conventional borrowing.</p>', unsafe_allow_html=True)
 
-        st.caption(f"**Equity Paid:** PKR {down_payment_amt:,.0f} | **Principal Financed:** PKR {loan_amount:,.0f}")
+    col_inputs, col_visuals = st.columns([1, 1], gap="large")
 
-    # Calculations
+    with col_inputs:
+        with st.container():
+            st.markdown("#### 1. Applicant Background")
+            monthly_income = st.slider("Monthly Net Income (PKR)", 30000, 1500000, 120000, step=10000, format="PKR %d")
+            
+            c_app1, c_app2 = st.columns(2)
+            with c_app1:
+                age = st.number_input("Age (Years)", 18, 65, 30)
+                job_type = st.selectbox(
+                    "Employment Status",
+                    ["Permanent Private Job", "Government Service", "Business Owner", "Contractual / Freelance"]
+                )
+            with c_app2:
+                credit_status = st.selectbox(
+                    "e-CIB Track Record",
+                    ["Clean / Excellent", "Satisfactory / Good", "Average", "Overdue / Poor"]
+                )
+                facility_purpose = st.selectbox(
+                    "Purpose",
+                    ["Car Financing (Ijarah)", "Housing Facility", "Personal Loan", "SME / Commercial"]
+                )
+
+        with st.container():
+            st.markdown("#### 2. Financing Structure")
+            asset_val = st.number_input(
+                "Total Asset Cost / Price (PKR)",
+                min_value=200000,
+                value=st.session_state["preset_price"],
+                step=100000
+            )
+            down_pct = st.slider(
+                "Down Payment / Advance Equity (%)",
+                min_value=5,
+                max_value=80,
+                value=st.session_state["preset_down"],
+                step=5
+            )
+            
+            equity_val = asset_val * (down_pct / 100)
+            net_borrowing = asset_val - equity_val
+            tenure = st.slider("Facility Tenure (Years)", 1, 7, st.session_state["preset_tenure"], step=1)
+
+            st.markdown(
+                f"""
+                <div style="background-color: #f1f5f9; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem;">
+                    <b>Down Payment:</b> PKR {equity_val:,.0f} &nbsp;|&nbsp; 
+                    <b>Net Loan Capital:</b> PKR {net_borrowing:,.0f}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    # -----------------------------
+    # Logic Engine
+    # -----------------------------
     score = 0
     if monthly_income >= 120000:
         score += 30
@@ -76,199 +169,236 @@ if page == "1. Loan Eligibility & Comparison":
         score += 10
 
     score += 20 if 25 <= age <= 50 else 10
+    
+    job_scores = {
+        "Government Service": 25,
+        "Permanent Private Job": 20,
+        "Business Owner": 15,
+        "Contractual / Freelance": 5
+    }
+    score += job_scores.get(job_type, 0)
 
-    job_weights = {"Government Job": 25, "Private Job - Permanent": 20, "Business Owner": 15, "Freelancer / Contractual": 5}
-    score += job_weights.get(job_type, 0)
-
-    credit_weights = {"Excellent": 25, "Good": 15, "Average": 10, "Poor": 0}
-    score += credit_weights.get(credit_history, 0)
+    cred_scores = {
+        "Clean / Excellent": 25,
+        "Satisfactory / Good": 15,
+        "Average": 10,
+        "Overdue / Poor": 0
+    }
+    score += cred_scores.get(credit_status, 0)
     score = min(score, 96)
 
-    # Rates: Indicative Flat Models
-    islamic_flat_rate = 0.205
-    conv_flat_rate = 0.235
-    months = tenure_years * 12
+    # Pricing Models (Indicative Benchmark spreads)
+    islamic_annual_rate = 0.205
+    conv_annual_rate = 0.235
+    total_months = tenure * 12
 
-    islamic_total_markup = loan_amount * islamic_flat_rate * tenure_years
-    conv_total_interest = loan_amount * conv_flat_rate * tenure_years
+    islamic_total_markup = net_borrowing * islamic_annual_rate * tenure
+    conv_total_interest = net_borrowing * conv_annual_rate * tenure
 
-    islamic_monthly = (loan_amount + islamic_total_markup) / months
-    conv_monthly = (loan_amount + conv_total_interest) / months
+    islamic_emi = (net_borrowing + islamic_total_markup) / total_months
+    conv_emi = (net_borrowing + conv_total_interest) / total_months
 
-    dbr_pct = (islamic_monthly / monthly_income) * 100
+    dbr_pct = (islamic_emi / monthly_income) * 100
 
-    with col_out:
-        st.subheader("Assessment Results")
+    # -----------------------------
+    # Outputs Section
+    # -----------------------------
+    with col_visuals:
+        st.markdown("#### 3. Real-Time Eligibility & Metrics")
 
+        # Top Metric Cards
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Eligibility Score", f"{score}/100")
+        with m2:
+            st.metric("Debt-Burden (DBR)", f"{dbr_pct:.1f}%")
+        with m3:
+            monthly_delta = conv_emi - islamic_emi
+            st.metric("Est. Monthly Saving", f"PKR {monthly_delta:,.0f}")
+
+        # Status Banner
         if score >= 70 and dbr_pct <= 45:
-            status_title = "Eligible"
-            status_color = "#10B981"
-            status_msg = "Strong profile. Low default risk under SBP Consumer Prudential Regulations."
+            st.markdown('<span class="metric-badge badge-success">✓ ELIGIBLE (High Probability of Approval)</span>', unsafe_allow_html=True)
+            st.success("Your financial indicators satisfy the State Bank of Pakistan Consumer DBR threshold (under 45%).")
         elif score >= 50 or dbr_pct <= 50:
-            status_title = "Conditional Approval"
-            status_color = "#F59E0B"
-            status_msg = "Borderline assessment. May require additional co-borrowers or collateral."
+            st.markdown('<span class="metric-badge badge-warning">⚠ BORDERLINE (Conditional Approval Expected)</span>', unsafe_allow_html=True)
+            st.warning("Acceptable score, but DBR is approaching the regulatory limit. Consider increasing your down payment.")
         else:
-            status_title = "High Risk / Ineligible"
-            status_color = "#EF4444"
-            status_msg = "Debt ratio exceeds policy thresholds or credit history requires seasoning."
+            st.markdown('<span class="metric-badge badge-danger">✕ LOW APPROVAL PROBABILITY</span>', unsafe_allow_html=True)
+            st.error("Monthly installment exceeds debt-capacity standards. Extending tenure or lowering facility size is advised.")
 
-        fig_gauge = go.Figure(go.Indicator(
+        # Interactive Gauge
+        fig_score = go.Figure(go.Indicator(
             mode="gauge+number",
             value=score,
-            number={"suffix": "/100"},
-            title={"text": f"<b>{status_title}</b>", "font": {"size": 18, "color": status_color}},
+            number={"suffix": "/100", "font": {"size": 28}},
             gauge={
                 "axis": {"range": [0, 100]},
-                "bar": {"color": status_color},
+                "bar": {"color": "#0ea5e9"},
                 "steps": [
-                    {"range": [0, 50], "color": "#FEE2E2"},
-                    {"range": [50, 70], "color": "#FEF3C7"},
-                    {"range": [70, 100], "color": "#D1FAE5"}
+                    {"range": [0, 50], "color": "#fee2e2"},
+                    {"range": [50, 70], "color": "#fef3c7"},
+                    {"range": [70, 100], "color": "#d1fae5"}
                 ],
+                "threshold": {"line": {"color": "#0284c7", "width": 4}, "thickness": 0.8, "value": score}
             }
         ))
-        fig_gauge.update_layout(height=240, margin=dict(l=20, r=20, t=30, b=10))
-        st.plotly_chart(fig_gauge, use_container_width=True)
+        fig_score.update_layout(height=200, margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_score, use_container_width=True)
 
-        if dbr_pct > 50:
-            st.error(f"**DBR Warning:** Monthly debt accounts for **{dbr_pct:.1f}%** of income (SBP recommended cap: 40-50%).")
-        else:
-            st.success(f"**DBR Compliant:** Debt represents **{dbr_pct:.1f}%** of net disposable income.")
+        # Tabbed Output
+        tab_table, tab_chart = st.tabs(["📋 Installment Comparison", "📊 Cost Breakdown Chart"])
+        
+        with tab_table:
+            summary_table = pd.DataFrame({
+                "Parameter": ["Monthly Installment (Qist)", "Financed Principal", "Total Cost / Markup", "Total Outflow"],
+                "Islamic Structure": [f"PKR {islamic_emi:,.0f}", f"PKR {net_borrowing:,.0f}", f"PKR {islamic_total_markup:,.0f}", f"PKR {(net_borrowing + islamic_total_markup):,.0f}"],
+                "Conventional Loan": [f"PKR {conv_emi:,.0f}", f"PKR {net_borrowing:,.0f}", f"PKR {conv_total_interest:,.0f}", f"PKR {(net_borrowing + conv_total_interest):,.0f}"]
+            })
+            st.dataframe(summary_table, hide_index=True, use_container_width=True)
 
-        st.info(status_msg)
-
-        # Comparison Table
-        st.markdown("### Cost Breakdown")
-        comp_df = pd.DataFrame({
-            "Metric": ["Principal Borrowed", "Monthly Installment", "Total Markup / Cost", "Total Repayment"],
-            "Islamic Banking (Meezan/BankIslami)": [f"PKR {loan_amount:,.0f}", f"PKR {islamic_monthly:,.0f}", f"PKR {islamic_total_markup:,.0f}", f"PKR {(loan_amount + islamic_total_markup):,.0f}"],
-            "Conventional Banking (HBL/UBL)": [f"PKR {loan_amount:,.0f}", f"PKR {conv_monthly:,.0f}", f"PKR {conv_total_interest:,.0f}", f"PKR {(loan_amount + conv_total_interest):,.0f}"]
-        })
-        st.table(comp_df)
-
+        with tab_chart:
+            fig_bar = go.Figure(data=[
+                go.Bar(name='Principal', x=['Islamic', 'Conventional'], y=[net_borrowing, net_borrowing], marker_color='#0284c7'),
+                go.Bar(name='Markup / Interest', x=['Islamic', 'Conventional'], y=[islamic_total_markup, conv_total_interest], marker_color='#94a3b8')
+            ])
+            fig_bar.update_layout(barmode='stack', height=240, margin=dict(l=10, r=10, t=20, b=20))
+            st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==============================================================================
 # PAGE 2: BANK DIRECTORY & PRODUCTS
 # ==============================================================================
-elif page == "2. Bank Directory & Products":
-    st.title("Pakistani Banks Directory & Financing Schemes")
-    st.write("Overview of consumer financing schemes available across leading financial institutions.")
-    st.markdown("---")
+elif page == "🏢 Bank Directory & Products":
+    st.title("Pakistani Banking Institutions & Product Matrix")
+    st.markdown('<p class="sub-heading">Compare dedicated Islamic windows against leading conventional scheduled banks.</p>', unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["Islamic Financial Institutions", "Conventional Financial Institutions"])
+    t_islamic, t_conv, t_docs = st.tabs(["🌙 Islamic Institutions", "🏢 Conventional Banks", "📑 Mandatory Documentation"])
 
-    with tab1:
-        st.subheader("Shariah-Compliant Banks")
+    with t_islamic:
+        st.markdown("#### Primary Islamic Banks")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("""
+            **Meezan Bank Limited**
+            - **Auto Scheme:** Car Ijarah (Ownership transfer upon lease conclusion)
+            - **Home Finance:** Easy Home (Diminishing Musharakah)
+            - **Charity Fund:** Delinquency fines routed exclusively to audited charity accounts.
+            """)
+        with c2:
+            st.markdown("""
+            **BankIslami Pakistan Limited**
+            - **Auto Scheme:** Auto Ijarah
+            - **Home Finance:** Muskun Home Financing
+            - **Shariah Governance:** Dual Shariah Supervisory Board oversight.
+            """)
+
+    with t_conv:
+        st.markdown("#### Leading Commercial Institutions")
+        c3, c4 = st.columns(2)
+        with c3:
+            st.markdown("""
+            **Habib Bank Limited (HBL)**
+            - **Auto Loan:** Fixed and floating KIBOR-linked auto installment plans.
+            - **Home Loan:** HBL GharAasani.
+            """)
+        with c4:
+            st.markdown("""
+            **United Bank Limited (UBL)**
+            - **Auto Loan:** UBL Drive (Flexible balloon payment options).
+            - **Consumer Loans:** CashLine revolving facilities.
+            """)
+
+    with t_docs:
+        st.markdown("#### SBP Regulatory Checklist")
+        st.info("Ensure all files are attested before applying to expedite e-CIB verification.")
         st.markdown("""
-        * **Meezan Bank Ltd:**
-          * Products: *Car Ijarah*, *Easy Home*, *Consumer Musharakah*
-          * Typical Benchmark: 1Y KIBOR + Bank Spread
-          * Late Payment Policy: Charity pool allocations (strictly non-interest)
-        * **BankIslami Pakistan:**
-          * Products: *Muskun Home Financing*, *Auto Ijarah*
-          * Focus: Fast-track digital approvals and verified asset procurement
-        * **Faysal Bank (Barkat Islamic):**
-          * Products: Complete full-conversion Islamic banking suite
+        * **Salaried Personnel:** CNIC copy, original salary slips (last 3 months), 6-month certified bank statement, employment letter.
+        * **Business / Self-Employed:** Valid NTN Certificate, verified Tax Returns (last 2 years), active bank statement (12 months), company registration proof.
         """)
 
-    with tab2:
-        st.subheader("Conventional Commercial Banks")
-        st.markdown("""
-        * **Habib Bank Limited (HBL):**
-          * Products: *HBL CarLoan*, *HBL Home Finance*, *Personal Loans*
-          * Model: Variable/fixed loan interest tied to 3M/1Y KIBOR
-        * **United Bank Limited (UBL):**
-          * Products: *UBL Drive*, *UBL Address*
-        * **Bank Alfalah:**
-          * Products: Flexible tenure personal installment loans
-        """)
-
-    st.markdown("---")
-    st.subheader("General Document Requirements")
-    st.markdown("""
-    - **Salaried Individuals:** Valid CNIC, last 3 to 6 months' salary slips, salary bank statement (6 months), employment certificate.
-    - **Self-Employed / Business:** Proof of business registration, NTN certificate, audited/active bank statements (12 months).
-    """)
-
-
 # ==============================================================================
-# PAGE 3: AMORTIZATION SCHEDULE
+# PAGE 3: AMORTIZATION MATRIX
 # ==============================================================================
-elif page == "3. Amortization Schedule":
-    st.title("Annual Repayment Schedule")
-    st.write("Examine how principal and profit distribute across the lifetime of the facility.")
-    st.markdown("---")
+elif page == "📅 Amortization Matrix":
+    st.title("Interactive Repayment Schedule")
+    st.markdown('<p class="sub-heading">View how balance reduction and interest/markup distributions evolve over the selected facility lifespan.</p>', unsafe_allow_html=True)
 
-    loan_p = st.number_input("Enter Loan Capital (PKR)", value=1000000, step=50000)
-    tenure_y = st.slider("Select Duration (Years)", 1, 10, 5)
-    rate_pct = st.slider("Indicative Flat Rate (% per annum)", 10.0, 35.0, 21.0, step=0.5)
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        p_amount = st.number_input("Capital Amount (PKR)", value=1500000, step=50000)
+    with f2:
+        p_years = st.slider("Repayment Years", 1, 10, 3)
+    with f3:
+        p_rate = st.slider("Indicative Annual Flat Markup (%)", 12.0, 32.0, 21.0, step=0.5)
 
-    annual_profit = loan_p * (rate_pct / 100)
-    annual_principal = loan_p / tenure_y
-    annual_payment = annual_principal + annual_profit
+    p_annual_markup = p_amount * (p_rate / 100)
+    p_annual_principal = p_amount / p_years
+    total_installment_annual = p_annual_principal + p_annual_markup
 
-    remaining = loan_p
-    schedule = []
+    balance = p_amount
+    data = []
 
-    for year in range(1, tenure_y + 1):
-        remaining -= annual_principal
-        schedule.append({
-            "Year": f"Year {year}",
-            "Opening Balance (PKR)": f"{remaining + annual_principal:,.0f}",
-            "Principal Repaid (PKR)": f"{annual_principal:,.0f}",
-            "Profit / Markup Paid (PKR)": f"{annual_profit:,.0f}",
-            "Total Annual Payment (PKR)": f"{annual_payment:,.0f}",
-            "Ending Balance (PKR)": f"{max(0, remaining):,.0f}"
+    for yr in range(1, p_years + 1):
+        prev_balance = balance
+        balance -= p_annual_principal
+        data.append({
+            "Year": f"Year {yr}",
+            "Opening Capital (PKR)": f"{prev_balance:,.0f}",
+            "Principal Settled (PKR)": f"{p_annual_principal:,.0f}",
+            "Markup Incurred (PKR)": f"{p_annual_markup:,.0f}",
+            "Total Annual Outflow (PKR)": f"{total_installment_annual:,.0f}",
+            "Outstanding Capital (PKR)": f"{max(0, balance):,.0f}"
         })
 
-    schedule_df = pd.DataFrame(schedule)
-    st.dataframe(schedule_df, use_container_width=True)
+    df_schedule = pd.DataFrame(data)
+    st.dataframe(df_schedule, use_container_width=True, hide_index=True)
 
-    csv_data = schedule_df.to_csv(index=False).encode('utf-8')
+    csv_export = df_schedule.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="Download Schedule as CSV",
-        data=csv_data,
-        file_name="loan_repayment_schedule.csv",
+        label="📥 Download Amortization Schedule (CSV)",
+        data=csv_export,
+        file_name="pakistan_repayment_schedule.csv",
         mime="text/csv"
     )
-
 
 # ==============================================================================
 # PAGE 4: SHARIAH VS CONVENTIONAL GUIDE
 # ==============================================================================
-elif page == "4. Shariah vs Conventional Guide":
-    st.title("Understanding Islamic vs Conventional Finance")
-    st.write("A structured overview of core operational and structural differences.")
-    st.markdown("---")
+elif page == "📖 Shariah vs Conventional Guide":
+    st.title("Conceptual & Regulatory Differences")
+    st.markdown('<p class="sub-heading">Understanding underlying mechanisms, risk distribution, and legal structures.</p>', unsafe_allow_html=True)
 
-    col_a, col_b = st.columns(2)
+    col_sh1, col_sh2 = st.columns(2)
 
-    with col_a:
-        st.subheader("Islamic Banking Structure")
+    with col_sh1:
         st.markdown("""
-        * **Asset-Backed Transactions:** Money cannot earn money directly. The transaction must involve physical goods, services, or assets.
-        * **Risk-Sharing:** Both parties share equity or lease risks through contracts like *Musharakah* or *Ijarah*.
-        * **No Riba (Interest):** No interest penalty charged for cash delays; penalty payments go exclusively to registered Shariah-compliant charities.
-        * **Governance:** Audited by internal Shariah boards and governed by the SBP Islamic Banking Department.
-        """)
+        <div class="finance-card">
+            <h4>🌙 Islamic Banking Architecture</h4>
+            <ul>
+                <li><b>Asset Backed:</b> Currency cannot generate earnings on itself. Funding is tied to tangible underlying assets.</li>
+                <li><b>No Compounding Interest (Riba):</b> Delinquent repayments incur predefined late fees routed directly to charitable funds.</li>
+                <li><b>Equitable Risk-Sharing:</b> Bank retains asset risk until complete transfer of legal title.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
-    with col_b:
-        st.subheader("Conventional Banking Structure")
+    with col_sh2:
         st.markdown("""
-        * **Debtor-Creditor Relationship:** The bank lends funds and receives interest on the underlying capital.
-        * **Compounding Charges:** Delinquency or default often triggers compounding interest penalties.
-        * **Pure Financial Lending:** Does not necessarily involve buying, selling, or leasing the underlying asset.
-        * **Governance:** Subject to standard commercial and monetary regulatory frameworks.
-        """)
+        <div class="finance-card">
+            <h4>🏢 Conventional Banking Architecture</h4>
+            <ul>
+                <li><b>Lender-Borrower Setup:</b> Money operates as a commodity rented out for a markup rate.</li>
+                <li><b>Compounding Penalties:</b> Payment defaults accumulate interest-on-interest, adding to the principal liability.</li>
+                <li><b>Pure Financial Risk Transfer:</b> Risk is transferred directly to the borrower upon capital disbursement.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.subheader("Common Shariah Terminology")
+    st.markdown("#### Key Islamic Financial Modes Explained")
     st.markdown("""
-    | Arabic / Islamic Term | Meaning | Typical Use Case |
+    | Model | Contract Type | Practical Banking Application |
     | :--- | :--- | :--- |
-    | **Murabaha** | Cost-plus sales transaction | Raw materials, short-term equipment purchase |
-    | **Ijarah** | Shariah-compliant lease agreement | Automobile financing |
-    | **Diminishing Musharakah** | Gradual ownership transfer partnership | Home purchasing and construction |
-    | **Takaful** | Cooperative risk-sharing insurance | Vehicle and property coverage |
+    | **Ijarah** | Rental / Usufruct Transfer | Automobile procurement (Bank owns vehicle; customer pays rental units) |
+    | **Diminishing Musharakah** | Declining Partnership | Home financing (Bank & customer co-own property; customer buys bank shares) |
+    | **Murabaha** | Cost-Plus Sale | Corporate inventory, raw material, and equipment purchases |
     """)
