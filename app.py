@@ -1,203 +1,177 @@
 import streamlit as st
 import plotly.graph_objects as go
 
-# Page Configuration (Mobile-friendly responsive layout)
 st.set_page_config(
-    page_title="Pakistan Islamic vs Conventional Loan Checker",
+    page_title="Pakistan Bank Loan & Shariah Checker Pro",
     page_icon="🇵🇰",
     layout="wide"
 )
 
-# Header
-st.markdown("# 🇵🇰 Pakistan Bank Loan Eligibility Checker - Islamic vs Conventional")
-st.caption(
-    "Apni eligibility score check karein aur Pakistani Islamic Banks (Meezan waghera) "
-    "aur Conventional Banks (HBL/UBL waghera) ki monthly Qist ka mawazna karein."
-)
+# Custom Styling
+st.markdown("""
+    <style>
+    .metric-card {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🇵🇰 Pakistan Loan Eligibility & Bank Comparison Pro")
+st.caption("State Bank guidelines aur Shariah usoolon ke mutabiq apni loan eligibility aur monthly qist check karein.")
 
 st.write("---")
 
-# Layout: Do columns (Mobile par automatically stack ho jayeingay)
-col_input, col_output = st.columns([1, 1], gap="large")
+col_in, col_out = st.columns([1, 1], gap="large")
 
 # ---------------------------------------------
-# Left Column: Inputs
+# Input Section
 # ---------------------------------------------
-with col_input:
-    st.subheader("📝 Applicant Details")
+with col_in:
+    st.subheader("👤 Applicant Profile")
+    
+    income = st.slider("💵 Monthly Net Salary / Income (PKR)", 20000, 1000000, 85000, step=5000)
+    age = st.slider("🎂 Age (Years)", 18, 65, 29, step=1)
+    
+    col_sub1, col_sub2 = st.columns(2)
+    with col_sub1:
+        job_type = st.selectbox(
+            "💼 Employment Type",
+            ["Government Job", "Private Job - Permanent", "Business Owner", "Freelancer / Contract"]
+        )
+    with col_sub2:
+        credit_history = st.selectbox(
+            "📈 e-CIB / Credit History",
+            ["Excellent", "Good", "Average", "Poor"]
+        )
 
-    income = st.slider(
-        "💵 Monthly Income (PKR)",
-        min_value=20000,
-        max_value=500000,
-        value=70000,
-        step=5000
-    )
-
-    age = st.slider(
-        "🎂 Age",
-        min_value=18,
-        max_value=65,
-        value=27,
-        step=1
-    )
-
-    job_type = st.selectbox(
-        "💼 Job Type",
-        [
-            "Government Job",
-            "Private Job - Permanent",
-            "Business Owner",
-            "Freelancer / Contract"
-        ],
-        index=1
-    )
-
-    credit_history = st.radio(
-        "📈 Credit History (e-CIB)",
-        ["Excellent", "Good", "Average", "Poor"],
-        index=1,
-        horizontal=True
-    )
-
-    loan_amount = st.number_input(
-        "💰 Loan Amount (PKR)",
-        min_value=50000,
-        value=800000,
-        step=50000
-    )
-
+    st.subheader("🚗 Loan / Financing Details")
     loan_type = st.selectbox(
-        "🚗 Loan Type",
-        [
-            "Car Loan (Ijarah)",
-            "Personal Loan",
-            "Home Loan",
-            "Business Loan"
-        ],
-        index=0
+        "Facility Type",
+        ["Car Loan / Ijarah", "Home Financing", "Personal Loan", "SME / Business Loan"]
     )
 
-    duration_years = st.slider(
-        "⏳ Duration (Years)",
-        min_value=1,
-        max_value=7,
-        value=3,
-        step=1
-    )
+    total_price = st.number_input("💰 Total Asset / Required Price (PKR)", min_value=100000, value=1500000, step=50000)
+    
+    down_payment_pct = st.slider("📉 Down Payment / Advance (%)", min_value=0, max_value=70, value=20, step=5)
+    down_payment_val = total_price * (down_payment_pct / 100)
+    loan_amount = total_price - down_payment_val
+    
+    st.caption(f"📌 **Advance Raqam:** PKR {down_payment_val:,.0f} | **Asal Financing Amount:** PKR {loan_amount:,.0f}")
 
-    calculate_btn = st.button("🔍 Check Eligibility + Compare Banks", type="primary", use_container_width=True)
+    duration_years = st.slider("⏳ Tenure / Muddat (Years)", 1, 7, 3, step=1)
 
 # ---------------------------------------------
-# Logic & Calculations
+# Scoring & Calculation Logic
 # ---------------------------------------------
+# 1. Eligibility Score
 score = 0
-
-# 1. Income points
-if income >= 100000:
+if income >= 120000:
     score += 30
 elif income >= 60000:
     score += 20
 elif income >= 35000:
     score += 10
 
-# 2. Age points
 if 25 <= age <= 50:
     score += 20
 else:
     score += 10
 
-# 3. Job points
-job_scores = {
-    "Government Job": 25,
-    "Private Job - Permanent": 20,
-    "Business Owner": 15,
-    "Freelancer / Contract": 5
-}
-score += job_scores.get(job_type, 0)
+job_pts = {"Government Job": 25, "Private Job - Permanent": 20, "Business Owner": 15, "Freelancer / Contract": 5}
+score += job_pts.get(job_type, 0)
 
-# 4. Credit points
-credit_scores = {
-    "Excellent": 25,
-    "Good": 15,
-    "Average": 10,
-    "Poor": 0
-}
-score += credit_scores.get(credit_history, 0)
-
-# Cap score at 96
+cred_pts = {"Excellent": 25, "Good": 15, "Average": 10, "Poor": 0}
+score += cred_pts.get(credit_history, 0)
 score = min(score, 96)
 
-# Status & Colors
-if score >= 70:
-    status_label = "🟢 ELIGIBLE"
-    gauge_color = "#10B981"
-    status_note = "Aapki profile strong hai! Banks aasani se loan approve kar sakte hain."
-elif score >= 50:
-    status_label = "🟠 MAYBE"
-    gauge_color = "#F59E0B"
-    status_note = "Aap borderline candidate hain. Bank guarantor ya barhi down payment maang sakta hai."
-else:
-    status_label = "🔴 LOW CHANCE"
-    gauge_color = "#EF4444"
-    status_note = "Loan approval ke imkanaat kam hain. Credit history behtar karein ya loan amount kam karein."
-
-# Installment calculation
+# 2. Monthly Installments (Indicative Rates)
 months = duration_years * 12
-islamic_monthly = (loan_amount + loan_amount * 0.21 * duration_years) / months
-conventional_monthly = (loan_amount + loan_amount * 0.23 * duration_years) / months
+islamic_rate = 0.205     # 20.5% Flat
+conventional_rate = 0.235 # 23.5% Flat
 
-# Plotly Gauge Chart
-fig = go.Figure(
-    go.Indicator(
+islamic_monthly = (loan_amount + (loan_amount * islamic_rate * duration_years)) / months
+conv_monthly = (loan_amount + (loan_amount * conventional_rate * duration_years)) / months
+
+# 3. Debt-to-Burden Ratio (DBR / SBP Standard is ~40-50%)
+dbr_ratio = (islamic_monthly / income) * 100
+
+# Status Evaluation
+if score >= 70 and dbr_ratio <= 45:
+    status_text = "ELIGIBLE (High Approval)"
+    status_color = "#10B981"
+    note = "Shandaar profile! State Bank limits ke mutabiq aapki approval ke imkanaat bohat zyada hain."
+elif score >= 50 or dbr_ratio <= 50:
+    status_text = "BORDERLINE / CONDITIONAL"
+    status_color = "#F59E0B"
+    note = "Approval mil sakti hai lekin bank guarantor ya advance payment barhane ka keh sakta hai."
+else:
+    status_text = "LOW CHANCE"
+    status_color = "#EF4444"
+    note = "Qist aapki aamdani ke hisab se zyada hai ya score kam hai. Muddat (Tenure) barhain ya loan amount kam karein."
+
+# ---------------------------------------------
+# Output Section
+# ---------------------------------------------
+with col_out:
+    st.subheader("📊 Eligibility Assessment")
+
+    # Gauge Chart
+    fig_gauge = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
-        number={"suffix": "/100", "font": {"size": 28}},
-        title={"text": "<b>Eligibility Score</b>", "font": {"size": 18}},
+        number={"suffix": "/100"},
+        title={"text": f"<b>Score: {status_text}</b>", "font": {"size": 16, "color": status_color}},
         gauge={
             "axis": {"range": [0, 100]},
-            "bar": {"color": gauge_color},
+            "bar": {"color": status_color},
             "steps": [
-                {"range": [0, 50], "color": "#FEE2E2"},
-                {"range": [50, 70], "color": "#FEF3C7"},
-                {"range": [70, 100], "color": "#D1FAE5"}
+                {"range": [0, 50], "color": "#fee2e2"},
+                {"range": [50, 70], "color": "#fef3c7"},
+                {"range": [70, 100], "color": "#d1fae5"}
             ],
-            "threshold": {
-                "line": {"color": gauge_color, "width": 4},
-                "thickness": 0.75,
-                "value": score
-            }
         }
-    )
-)
-fig.update_layout(height=260, margin=dict(l=20, r=20, t=30, b=20))
+    ))
+    fig_gauge.update_layout(height=240, margin=dict(l=20, r=20, t=30, b=10))
+    st.plotly_chart(fig_gauge, use_container_width=True)
 
-# ---------------------------------------------
-# Right Column: Outputs
-# ---------------------------------------------
-with col_output:
-    st.subheader("📊 Results & Bank Comparison")
+    # DBR Metric Box
+    if dbr_ratio > 50:
+        st.error(f"⚠️ **SBP Alert:** Monthly Qist aapki aamdani ka **{dbr_ratio:.1f}%** hai (SBP safe limit: 40-50%).")
+    else:
+        st.success(f"✅ **SBP Compliance:** Monthly Qist aapki aamdani ka **{dbr_ratio:.1f}%** hai (Safe zone).")
+
+    st.info(note)
+
+    # Bank Comparison Table
+    st.markdown("### 🏦 Multi-Bank Monthly Qist Comparison")
     
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown(f"### Status: {status_label}")
-    st.info(status_note)
-
     st.markdown(f"""
-    **Loan Summary:**
-    - **Category:** {loan_type}
-    - **Financing:** PKR {loan_amount:,.0f}
-    - **Duration:** {duration_years} Saal ({months} Months)
+| Bank Name | Category | Approx. Monthly Qist | Model |
+| :--- | :--- | :--- | :--- |
+| **Meezan Bank** | Islamic | **PKR {islamic_monthly:,.0f}** | *Ijarah (Asset-backed)* |
+| **BankIslami** | Islamic | **PKR {(islamic_monthly * 1.01):,.0f}** | *Diminishing Musharakah* |
+| **HBL Bank** | Conventional | **PKR {conv_monthly:,.0f}** | *KIBOR + Markup Loan* |
+| **Bank Alfalah** | Conventional | **PKR {(conv_monthly * 0.99):,.0f}** | *Fixed/Floating Interest* |
     """)
 
-    # Comparison Table
-    table_md = f"""
-| Bank Type | Bank Example | Monthly Qist | Concept |
-| :--- | :--- | :--- | :--- |
-| **Islamic** | Meezan Islamic | **PKR {islamic_monthly:,.0f}** | *Ijarah / Diminishing Musharakah* (Rent/Shirkah, Interest-free) |
-| **Conventional** | HBL / UBL Conventional | **PKR {conventional_monthly:,.0f}** | *Interest-based Lending* (KIBOR spread flat loan) |
-    """
-    st.markdown(table_md)
+    # Donut Chart: Principal vs Profit
+    total_islamic_profit = (islamic_monthly * months) - loan_amount
+    fig_donut = go.Figure(data=[go.Pie(
+        labels=['Asal Raqam (Principal)', 'Bank Markup / Profit'],
+        values=[loan_amount, total_islamic_profit],
+        hole=.5,
+        marker_colors=['#059669', '#cbd5e1']
+    )])
+    fig_donut.update_layout(
+        title_text="Total Payment Breakdown (Islamic)",
+        height=220,
+        margin=dict(l=10, r=10, t=30, b=10)
+    )
+    st.plotly_chart(fig_donut, use_container_width=True)
 
-    monthly_saving = conventional_monthly - islamic_monthly
-    st.success(f"💡 Islamic option me aap har mahine taqreeban **PKR {monthly_saving:,.0f}** bacha sakte hain.")
+    savings_total = (conv_monthly - islamic_monthly) * months
+    st.markdown(f"> 💡 Puri muddat me Islamic financing par taqreeban **PKR {savings_total:,.0f}** ki bachat mutawaqa hai.")
